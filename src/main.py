@@ -11,9 +11,9 @@ class PageTableEntry:
 def main():
     pageFaults = 0
 
-    pageQueue = Queue(maxsize=256)
+    fifoQueue = Queue(maxsize=256)
     pageTable = [PageTableEntry(False, None) for _ in range(256)]
-    # TODO implementar memório física (array representando os 64kB)
+    memory = [None] * 256
 
     addresses = open("assets/addresses.txt", "r")
     pages = loadJson()
@@ -22,15 +22,26 @@ def main():
         print(address)
         pageNumber, pageOffset = translateAddress(address)
 
+        # FIXME: Certeza que não vai funcionar
+        if PageTableEntry(True, pageNumber) in pageTable:
+            i = pageTable.index(PageTableEntry(True, pageNumber))
+            # TODO: Levar em conta o offset
+            print("Acessado valor {} da memória física".format(memory[i]))
+        else:
+            pageFaults += 1
+            # Busca na swap
 
-def findFreeFrame(pageTable):
+
+def findFreeFrame(pageTable, fifoQueue):
     for i, entry in enumerate(pageTable):
         if not entry.valid:
             # Se tiver um frame vazio o retorna
             return i
         else:
             # Não existem frames livres, precisa chamar o FIFO
-            return -1
+            frameToRemove = fifoQueue.get()
+            pageTable[frameToRemove].valid = False
+            return frameToRemove
 
 
 # Recebe o binário como string e converte para decimal
