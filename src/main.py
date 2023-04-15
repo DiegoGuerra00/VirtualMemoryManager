@@ -1,5 +1,5 @@
 from queue import Queue
-import json
+import json, random
 
 
 class PageTableEntry:
@@ -30,33 +30,69 @@ def main():
 def virtualMemory(pageTable, fifoQueue, physicalMemory, addresses, swap):
     pageFaults = 0
     for address in addresses:
-        print("Acessando endereço {}".format(address))
+        print("\nAcessando endereço {}".format(address))
         pageNumber, pageOffset = translateAddress(address)
         pageNumber = convertBinToDec(str(pageNumber))
         pageOffset = convertBinToDec(str(pageOffset))
 
         print("Buscando page number: {}".format(pageNumber))
 
-        # FIXME: nunca entre no primeiro if pq ta errado, provavelmente
-        if PageTableEntry(True, pageNumber) in pageTable:
-            i = pageTable.index(PageTableEntry(True, pageNumber))
-            # TODO: Levar em conta o offset
-            print("Valor presente na memória")
-            print("Acessado valor {}: ".format(physicalMemory[i]))
+        for page in pageTable:
+            if page.valid == True and page.frame == pageNumber:
+                # FIXME: offset não funciona aparentemente
+                print("Frame: {} Valido: {}".format(page.frame, page.valid))
+                print("Valor presente na memória")
+                print(
+                    "Acessado valor {} a partir do offset {}".format(
+                        physicalMemory[page.frame][pageOffset:], pageOffset
+                    )
+                )
+                break
         else:
-            print("Valor não presente na memória...Buscando na swap")
             # Busca na swap
+            print("Valor não presente na memória...Buscando na swap")
             pageFaults += 1
 
             for page in swap:
-                if page["page"] == int(pageNumber):
-                    # TODO: Tratar FIFO cheia
+                if page["page"] == pageNumber:
                     newFrame = findFreeFrame(pageTable, fifoQueue)
-                    pageTable[int(pageNumber)].valid = True
-                    pageTable[int(pageNumber)].frame = newFrame
+                    pageTable[int(newFrame)].valid = True
+                    pageTable[int(newFrame)].frame = pageNumber
                     fifoQueue.put(newFrame)
 
                     physicalMemory[int(pageNumber)] = page["data"]
+
+    print("Ocorreram um total de {} page faults".format(pageFaults))
+
+
+def generateJson():
+    swap = []
+    for i in range(256):
+        dict = {
+            "page": i,
+            "data": "".join(
+                [format(random.randint(0, 255), "02x") for _ in range(256)]
+            ),
+        }
+
+        swap.append(dict)
+
+    with open("assets/swap.json", "w") as f:
+        json.dump(swap, f, indent=2)
+
+
+def generateAddresses():
+    addresses = []
+    for _ in range(1000):
+        tmp = ""
+        for _ in range(16):
+            tmp += str(random.randint(0, 1))
+        addresses.append(tmp)
+
+    with open("assets/addresses.txt", "w") as f:
+        for address in addresses:
+            f.write(str(address))
+            f.write("\n")
 
 
 def findFreeFrame(pageTable, fifoQueue):
@@ -84,11 +120,13 @@ def translateAddress(address):
 
 
 def loadJson():
-    with open("assets/pages.json", "r") as f:
+    with open("assets/swap.json", "r") as f:
         pages = json.load(f)
 
     return pages
 
 
 if __name__ == "__main__":
+    generateJson()
+    generateAddresses()
     main()
