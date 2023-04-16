@@ -9,8 +9,6 @@ class PageTableEntry:
 
 
 def main():
-    pageFaults = 0
-
     fifoQueue = Queue(maxsize=256)  # Guarda apenas o índice das entradas na table
     pageTable = [PageTableEntry(False, None) for _ in range(256)]
     memory = [None] * 256  # Armazena apenas os dados, sendo o frame o índice
@@ -71,7 +69,7 @@ def generateJson():
         dict = {
             "page": i,
             "data": "".join(
-                [format(random.randint(0, 255), "02x") for _ in range(256)]
+                [format(random.randint(0, 1), "b") for _ in range(256)]
             ),
         }
 
