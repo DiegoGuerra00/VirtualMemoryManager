@@ -1,6 +1,8 @@
 from queue import Queue
 import json, random
 
+N = 10000  # Quantidade de endereços a serem buscados
+
 
 class PageTableEntry:
     def __init__(self, valid, frame):
@@ -22,26 +24,26 @@ def main():
 def virtualMemory(pageTable, fifoQueue, physicalMemory, addresses, swap):
     pageFaults = 0
     for address in addresses:
-        print("\nAcessando endereço {}".format(address))
+        printMessage("-----------------------------------------------------")
+        printMessage("\nAcessando endereço {}".format(address))
         pageNumber, pageOffset = translateAddress(address)
         pageNumber = convertBinToDec(str(pageNumber))
         pageOffset = convertBinToDec(str(pageOffset))
 
-        print("Buscando page number: {}".format(pageNumber))
+        printMessage("Buscando page number: {}".format(pageNumber))
 
         for page in pageTable:
             if page.valid == True and page.frame == pageNumber:
-                print("Frame: {} Valido: {}".format(page.frame, page.valid))
-                print("Valor presente na memória")
-                print(
-                    "Acessado valor {} a partir do offset {}".format(
-                        physicalMemory[page.frame][pageOffset:], pageOffset
+                printSucess("Valor presente na memória")
+                printMessage(
+                    "Acessando dados a partir do offset {}: {}".format(
+                        pageOffset, physicalMemory[page.frame][pageOffset:]
                     )
                 )
                 break
         else:
             # Busca na swap
-            print("Valor não presente na memória...Buscando na swap")
+            printWarning("Valor não presente na memória...Buscando na swap")
             pageFaults += 1
 
             for page in swap:
@@ -52,47 +54,22 @@ def virtualMemory(pageTable, fifoQueue, physicalMemory, addresses, swap):
                     fifoQueue.put(newFrame)
 
                     physicalMemory[int(pageNumber)] = page["data"]
+                    printSucess("Dados movidos para a memória física")
 
-    print("Ocorreram um total de {} page faults".format(pageFaults))
-
-
-def generateJson():
-    swap = []
-    for i in range(256):
-        dict = {
-            "page": i,
-            "data": "".join([format(random.randint(0, 1), "b") for _ in range(256)]),
-        }
-
-        swap.append(dict)
-
-    with open("assets/swap.json", "w") as f:
-        json.dump(swap, f, indent=2)
-
-
-def generateAddresses():
-    addresses = []
-    for _ in range(10000):
-        tmp = ""
-        for _ in range(16):
-            tmp += str(random.randint(0, 1))
-        addresses.append(tmp)
-
-    with open("assets/addresses.txt", "w") as f:
-        for address in addresses:
-            f.write(str(address))
-            f.write("\n")
+    printMessage("-----------------------------------------------------")
+    printMessage("Ocorreram um total de {} page faults".format(pageFaults))
+    printMessage("Cerca de {}% de page faults".format((pageFaults / N) * 100))
 
 
 def findFreeFrame(pageTable, fifoQueue):
     for i, entry in enumerate(pageTable):
         if not entry.valid:
             # Se tiver um frame vazio o retorna
-            print('Frame vazio encontrado')
+            printSucess("Frame vazio encontrado")
             return i
     else:
         # Não existem frames livres, precisa chamar o FIFO
-        print("Sem frames disponíveis... Aplicando FIFO...")
+        printWarning("Sem frames disponíveis... Aplicando FIFO...")
         frameToRemove = fifoQueue.get()
         pageTable[frameToRemove].valid = False
         return frameToRemove
@@ -115,6 +92,46 @@ def loadJson():
         pages = json.load(f)
 
     return pages
+
+
+def generateJson():
+    swap = []
+    for i in range(256):
+        dict = {
+            "page": i,
+            "data": "".join([format(random.randint(0, 1), "b") for _ in range(256)]),
+        }
+
+        swap.append(dict)
+
+    with open("assets/swap.json", "w") as f:
+        json.dump(swap, f, indent=2)
+
+
+def generateAddresses():
+    addresses = []
+    for _ in range(N):
+        tmp = ""
+        for _ in range(16):
+            tmp += str(random.randint(0, 1))
+        addresses.append(tmp)
+
+    with open("assets/addresses.txt", "w") as f:
+        for address in addresses:
+            f.write(str(address))
+            f.write("\n")
+
+
+def printSucess(text):
+    print("\x1B[32m{}\x1B[0m".format(text))
+
+
+def printMessage(text):
+    print("\x1B[34m{}\x1B[0m".format(text))
+
+
+def printWarning(text):
+    print("\x1B[33m{}\x1B[0m".format(text))
 
 
 if __name__ == "__main__":
