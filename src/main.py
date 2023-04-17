@@ -10,7 +10,7 @@ class PageTableEntry:
 
 def main():
     fifoQueue = Queue(maxsize=256)  # Guarda apenas o índice das entradas na table
-    pageTable = [PageTableEntry(False, None) for _ in range(256)]
+    pageTable = [PageTableEntry(False, None) for _ in range(255)]
     memory = [None] * 256  # Armazena apenas os dados, sendo o frame o índice
 
     addresses = open("assets/addresses.txt", "r")
@@ -31,7 +31,6 @@ def virtualMemory(pageTable, fifoQueue, physicalMemory, addresses, swap):
 
         for page in pageTable:
             if page.valid == True and page.frame == pageNumber:
-                # FIXME: offset não funciona aparentemente
                 print("Frame: {} Valido: {}".format(page.frame, page.valid))
                 print("Valor presente na memória")
                 print(
@@ -73,7 +72,7 @@ def generateJson():
 
 def generateAddresses():
     addresses = []
-    for _ in range(1000):
+    for _ in range(10000):
         tmp = ""
         for _ in range(16):
             tmp += str(random.randint(0, 1))
@@ -89,9 +88,11 @@ def findFreeFrame(pageTable, fifoQueue):
     for i, entry in enumerate(pageTable):
         if not entry.valid:
             # Se tiver um frame vazio o retorna
+            print('Frame vazio encontrado')
             return i
     else:
         # Não existem frames livres, precisa chamar o FIFO
+        print("Sem frames disponíveis... Aplicando FIFO...")
         frameToRemove = fifoQueue.get()
         pageTable[frameToRemove].valid = False
         return frameToRemove
