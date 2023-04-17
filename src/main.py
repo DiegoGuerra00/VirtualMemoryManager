@@ -16,12 +16,6 @@ def main():
     addresses = open("assets/addresses.txt", "r")
     pages = loadJson()
 
-    """
-    O frame é o índice do array representando a memória física.
-    A page number buscada será o índice da page table
-    Se for válido busca na memoria no indice indicado pelo frame da page table
-    Se nao for válido busca na swap e carrega na memoria e page table
-    """
     virtualMemory(pageTable, fifoQueue, memory, addresses, pages)
 
 
@@ -68,9 +62,7 @@ def generateJson():
     for i in range(256):
         dict = {
             "page": i,
-            "data": "".join(
-                [format(random.randint(0, 1), "b") for _ in range(256)]
-            ),
+            "data": "".join([format(random.randint(0, 1), "b") for _ in range(256)]),
         }
 
         swap.append(dict)
